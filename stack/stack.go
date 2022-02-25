@@ -1,4 +1,6 @@
 /*
+Package stack provides a stack type and associated operations.
+
 Copyright (c) 2012 Caleb Doxsey
 
 Permission is hereby granted, free of charge, to any person obtaining
