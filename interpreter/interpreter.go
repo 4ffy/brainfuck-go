@@ -9,6 +9,7 @@ import (
 	"brainfuck/stack"
 	"brainfuck/tape"
 	"fmt"
+	"regexp"
 )
 
 type BFInterpreter struct {
@@ -53,6 +54,7 @@ func getLoops(source string) (map[int]int, error) {
 //Execute runs a brainfuck program from source and input strings, printing to
 //stdout.
 func (bf *BFInterpreter) Execute(source, input string) error {
+	source = cleanSource(source)
 	bf.Reset()
 
 	loops, err := getLoops(source)
@@ -110,4 +112,9 @@ func (bf *BFInterpreter) Reset() {
 //PrintDebug dumps the contents of the tape to stdout.
 func (bf *BFInterpreter) PrintDebug() {
 	bf.memory.PrintDebug()
+}
+
+func cleanSource(source string) string {
+	re := regexp.MustCompile(`[^+-<>.,\[\]]`)
+	return re.ReplaceAllString(source, "")
 }
