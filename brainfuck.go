@@ -38,6 +38,7 @@ func main() {
 			log.Fatalf("could not read input: %v", err)
 		}
 	}
+	input = input[:len(input)-1]
 
 	bf := interpreter.NewBFInterpreter(*width)
 	err = bf.Execute(source, input)
