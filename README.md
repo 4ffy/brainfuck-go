@@ -12,7 +12,7 @@ via the `-b` option.
 Every Brainfuck interpreter has its idiosyncrasies. Here's some of the
 relevant ones for this program.
 - Cells wrap around when they go below zero or above the max cell size.
-- Cells are left unmodifiedwhen a `,` operation is read and there is no input
+- Cells are left unmodified when a `,` operation is read and there is no input
   left.
 - Input strings are given on a single line and terminated by a newline, which
   is not included when passed to the interpreter.
