@@ -30,27 +30,124 @@ import (
 	"brainfuck/tape"
 	"fmt"
 	"regexp"
+	"strings"
 )
 
+//BFInterpreter provides a interpreter container type.
 type BFInterpreter struct {
 	memory *tape.Tape
 }
 
+//token provides a container storing a BF instruction and how many times it is
+//to be executed.
+type token struct {
+	op  byte
+	num uint
+}
+
 //NewBFInterpreter initializes a new brainfuck interpreter with cell width
 //given in bits.
-func NewBFInterpreter(width uint) *BFInterpreter {
+func New(width uint) *BFInterpreter {
 	bf := new(BFInterpreter)
-	bf.memory = tape.NewTape(width)
+	bf.memory = tape.New(width)
 	return bf
 }
 
-//getLoops reads brainfuck source, returning a map of its loops.
-func getLoops(source string) (map[int]int, error) {
+//Execute runs a brainfuck program from source and input strings, printing to
+//stdout.
+func (bf *BFInterpreter) Execute(source, input string) error {
+	bf.Reset()
+
+	source = cleanSource(source)
+	tokens := tokenize(source)
+	loops, err := getLoops(tokens)
+	if err != nil {
+		return fmt.Errorf("creating loop map: %v", err)
+	}
+
+	var inpPtr int = 0
+	var tokPtr int = 0
+	for tokPtr < len(tokens) {
+		switch tokens[tokPtr].op {
+		case '+':
+			bf.memory.Add(tokens[tokPtr].num)
+		case '-':
+			bf.memory.Subtract(tokens[tokPtr].num)
+		case '>':
+			err = bf.memory.MoveRight(tokens[tokPtr].num)
+			if err != nil {
+				return fmt.Errorf("pos %v op >: %v", tokPtr, err)
+			}
+		case '<':
+			err = bf.memory.MoveLeft(tokens[tokPtr].num)
+			if err != nil {
+				return fmt.Errorf("pos %v op <: %v", tokPtr, err)
+			}
+		case '.':
+			fmt.Printf("%c", rune(bf.memory.GetCell()))
+		case ',':
+			if inpPtr < len(input) {
+				bf.memory.SetCell(uint(input[inpPtr]))
+				inpPtr++
+			}
+		case '[':
+			if bf.memory.GetCell() == 0 {
+				tokPtr = loops[tokPtr]
+			}
+		case ']':
+			if bf.memory.GetCell() != 0 {
+				tokPtr = loops[tokPtr]
+			}
+		}
+		tokPtr++
+	}
+
+	fmt.Print("\n")
+	return nil
+}
+
+//Reset clears the memory tape, setting all cells to 0 and moving back to the
+//first cell.
+func (bf *BFInterpreter) Reset() {
+	bf.memory.Reset()
+}
+
+//PrintDebug dumps the contents of the tape to stdout.
+func (bf *BFInterpreter) PrintDebug() {
+	bf.memory.PrintDebug()
+}
+
+//cleanSource removes characters from a source string that are not Brainfuck
+//instructions.
+func cleanSource(source string) string {
+	re := regexp.MustCompile(`[^+-<>.,\[\]]`)
+	return re.ReplaceAllString(source, "")
+}
+
+//tokenize returns a list of tokens through run-length encoding a source string.
+func tokenize(source string) []token {
+	tokens := make([]token, 0)
+	count := uint(1)
+	for i := range source[:len(source)-1] {
+		if source[i] == source[i+1] &&
+			strings.ContainsRune("+-<>", rune(source[i])) {
+			count++
+		} else {
+			tokens = append(tokens, token{source[i], count})
+			count = 1
+		}
+	}
+	tokens = append(tokens, token{source[len(source)-1], count})
+	return tokens
+}
+
+//getLoops reads tokenized source, returning a map of its loops.
+func getLoops(tokens []token) (map[int]int, error) {
 	loops := make(map[int]int)
 	lStack := stack.New()
 
-	for ptr, op := range source {
-		switch op {
+	for ptr, tok := range tokens {
+		switch tok.op {
 		case '[':
 			lStack.Push(ptr)
 		case ']':
@@ -69,72 +166,4 @@ func getLoops(source string) (map[int]int, error) {
 	}
 
 	return loops, nil
-}
-
-//Execute runs a brainfuck program from source and input strings, printing to
-//stdout.
-func (bf *BFInterpreter) Execute(source, input string) error {
-	source = cleanSource(source)
-	bf.Reset()
-
-	loops, err := getLoops(source)
-	if err != nil {
-		return fmt.Errorf("creating loop map: %v", err)
-	}
-
-	var inpPtr int = 0
-	var srcPtr int = 0
-	for srcPtr < len(source) {
-		switch source[srcPtr] {
-		case '+':
-			bf.memory.Increment()
-		case '-':
-			bf.memory.Decrement()
-		case '>':
-			err = bf.memory.MoveRight()
-			if err != nil {
-				return fmt.Errorf("pos %v op >: cannot move right: %v", srcPtr, err)
-			}
-		case '<':
-			err = bf.memory.MoveLeft()
-			if err != nil {
-				return fmt.Errorf("pos %v op <: cannot move left: %v", srcPtr, err)
-			}
-		case '.':
-			fmt.Printf("%c", rune(bf.memory.GetCell()))
-		case ',':
-			if inpPtr < len(input) {
-				bf.memory.SetCell(uint(input[inpPtr]))
-				inpPtr++
-			}
-		case '[':
-			if bf.memory.GetCell() == 0 {
-				srcPtr = loops[srcPtr]
-			}
-		case ']':
-			if bf.memory.GetCell() != 0 {
-				srcPtr = loops[srcPtr]
-			}
-		}
-		srcPtr++
-	}
-
-	fmt.Print("\n")
-	return nil
-}
-
-//Reset clears the memory tape, setting all cells to 0 and moving back to the
-//first cell.
-func (bf *BFInterpreter) Reset() {
-	bf.memory.Reset()
-}
-
-//PrintDebug dumps the contents of the tape to stdout.
-func (bf *BFInterpreter) PrintDebug() {
-	bf.memory.PrintDebug()
-}
-
-func cleanSource(source string) string {
-	re := regexp.MustCompile(`[^+-<>.,\[\]]`)
-	return re.ReplaceAllString(source, "")
 }

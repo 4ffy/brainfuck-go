@@ -35,7 +35,7 @@ type Tape struct {
 }
 
 //NetTape initializes a new Tape.
-func NewTape(width uint) *Tape {
+func New(width uint) *Tape {
 	t := new(Tape)
 	t.cells = make([]uint, 1)
 	t.maxval = 1 << width
@@ -43,35 +43,36 @@ func NewTape(width uint) *Tape {
 	return t
 }
 
-//MoveLeft moves one cell left.
-func (t *Tape) MoveLeft() error {
-	if t.cell == 0 {
-		return fmt.Errorf("cannot move left: out of bounds")
+//MoveLeft moves n cells to the left.
+func (t *Tape) MoveLeft(n uint) error {
+	if n > t.cell {
+		return fmt.Errorf("move left %v cells: out of bounds", n)
 	}
-	t.cell--
+	t.cell -= n
 	return nil
 }
 
-//MoveRight moves one cell right, resizing the tape if necessary.
-func (t *Tape) MoveRight() error {
-	if t.cell+1 == uint(len(t.cells)) {
-		t.cells = append(t.cells, 0)
+//MoveRight moves n cells right, resizing the tape if necessary.
+func (t *Tape) MoveRight(n uint) error {
+	if t.cell+n >= uint(len(t.cells)) {
+		extend := 1 + t.cell + n - uint(len(t.cells))
+		t.cells = append(t.cells, make([]uint, extend)...)
 	}
-	t.cell++
+	t.cell += n
 	return nil
 }
 
-//Increment adds one to the current cell, wrapping if limit reached.
-func (t *Tape) Increment() {
-	t.cells[t.cell] = (t.cells[t.cell] + 1) % t.maxval
+//Add adds n to the current cell, wrapping if limit reached.
+func (t *Tape) Add(n uint) {
+	t.cells[t.cell] = (t.cells[t.cell] + n) % t.maxval
 }
 
-//Increment subtracts one from current cell, wrapping if limit reached.
-func (t *Tape) Decrement() {
-	if t.cells[t.cell] > 0 {
-		t.cells[t.cell]--
+//Subtract subtracts n from the current cell, wrapping if limit reached.
+func (t *Tape) Subtract(n uint) {
+	if n > t.cells[t.cell] {
+		t.cells[t.cell] = t.maxval - (n - t.cells[t.cell])
 	} else {
-		t.cells[t.cell] = t.maxval - 1
+		t.cells[t.cell] -= n
 	}
 }
 
@@ -80,8 +81,7 @@ func (t *Tape) SetCell(value uint) error {
 	if value >= t.maxval {
 		return fmt.Errorf(
 			"value %v is greater than max cell size %v",
-			value, t.maxval-1,
-		)
+			value, t.maxval-1)
 	}
 
 	t.cells[t.cell] = value

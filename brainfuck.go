@@ -61,10 +61,10 @@ func main() {
 		if err != nil {
 			log.Fatalf("could not read input: %v", err)
 		}
+		input = input[:len(input)-1]
 	}
-	input = input[:len(input)-1]
 
-	bf := interpreter.NewBFInterpreter(*width)
+	bf := interpreter.New(*width)
 	err = bf.Execute(source, input)
 	if err != nil {
 		log.Fatalf("execute brainfuck: %v", err)
