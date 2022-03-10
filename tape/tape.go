@@ -3,7 +3,7 @@ Package tape provides a Tape type consisting of a tape of infinite cells
 that hold numerical values and a pointer to a certain cell for reading and
 writing.
 
-Copyright (c) 2022 4ffy
+Copyright (c) 2022 Cameron Norton
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -28,22 +28,23 @@ package tape
 
 import "fmt"
 
+//Tape provides a memory tape consisting of a list of cells and a pointer to an
+//active cell.
 type Tape struct {
-	maxval uint
-	cell   uint
-	cells  []uint
+	maxval uint   //maximum cell value
+	cell   uint   //current cell
+	cells  []uint //cell memory
 }
 
-//NetTape initializes a new Tape.
+//New initializes a new Tape.
 func New(width uint) *Tape {
 	t := new(Tape)
 	t.cells = make([]uint, 1)
 	t.maxval = 1 << width
-
 	return t
 }
 
-//MoveLeft moves n cells to the left.
+//MoveLeft moves the active cell n cells to the left.
 func (t *Tape) MoveLeft(n uint) error {
 	if n > t.cell {
 		return fmt.Errorf("move left %v cells: out of bounds", n)
@@ -52,7 +53,8 @@ func (t *Tape) MoveLeft(n uint) error {
 	return nil
 }
 
-//MoveRight moves n cells right, resizing the tape if necessary.
+//MoveRight moves the active cell n cells right, resizing the tape if
+//necessary.
 func (t *Tape) MoveRight(n uint) error {
 	if t.cell+n >= uint(len(t.cells)) {
 		extend := 1 + t.cell + n - uint(len(t.cells))
@@ -62,12 +64,12 @@ func (t *Tape) MoveRight(n uint) error {
 	return nil
 }
 
-//Add adds n to the current cell, wrapping if limit reached.
+//Add adds n to the active cell, wrapping if limit reached.
 func (t *Tape) Add(n uint) {
 	t.cells[t.cell] = (t.cells[t.cell] + n) % t.maxval
 }
 
-//Subtract subtracts n from the current cell, wrapping if limit reached.
+//Subtract subtracts n from the active cell, wrapping if limit reached.
 func (t *Tape) Subtract(n uint) {
 	if n > t.cells[t.cell] {
 		t.cells[t.cell] = t.maxval - (n - t.cells[t.cell])
@@ -76,7 +78,7 @@ func (t *Tape) Subtract(n uint) {
 	}
 }
 
-//SetCell sets the current cell to an arbitrary value.
+//SetCell sets the active cell to an arbitrary value.
 func (t *Tape) SetCell(value uint) error {
 	if value >= t.maxval {
 		return fmt.Errorf(
@@ -88,7 +90,7 @@ func (t *Tape) SetCell(value uint) error {
 	return nil
 }
 
-//GetCell returns the value of the current cell as an integer.
+//GetCell returns the value of the active cell as an integer.
 func (t *Tape) GetCell() uint {
 	return t.cells[t.cell]
 }

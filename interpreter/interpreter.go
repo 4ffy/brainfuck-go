@@ -2,7 +2,7 @@
 Package interpreter takes a Tape object and builds a brainfuck interpreter
 using the tape as memory.
 
-Copyright (c) 2022 4ffy
+Copyright (c) 2022 Cameron Norton
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -35,17 +35,17 @@ import (
 
 //BFInterpreter provides a interpreter container type.
 type BFInterpreter struct {
-	memory *tape.Tape
+	memory *tape.Tape //Cell memory.
 }
 
 //token provides a container storing a BF instruction and how many times it is
 //to be executed.
 type token struct {
-	op  byte
-	num uint
+	op  byte //brainfuck instruction
+	num uint //number of times to run
 }
 
-//NewBFInterpreter initializes a new brainfuck interpreter with cell width
+//New initializes a new brainfuck interpreter with cell width
 //given in bits.
 func New(width uint) *BFInterpreter {
 	bf := new(BFInterpreter)
@@ -56,8 +56,8 @@ func New(width uint) *BFInterpreter {
 //Execute runs a brainfuck program from source and input strings, printing to
 //stdout.
 func (bf *BFInterpreter) Execute(source, input string) error {
+	//Prepare for execution.
 	bf.Reset()
-
 	source = cleanSource(source)
 	tokens := tokenize(source)
 	loops, err := getLoops(tokens)
@@ -65,8 +65,9 @@ func (bf *BFInterpreter) Execute(source, input string) error {
 		return fmt.Errorf("creating loop map: %v", err)
 	}
 
-	var inpPtr int = 0
-	var tokPtr int = 0
+	//Loop through tokens.
+	inpPtr := 0
+	tokPtr := 0
 	for tokPtr < len(tokens) {
 		switch tokens[tokPtr].op {
 		case '+':
@@ -112,22 +113,26 @@ func (bf *BFInterpreter) Reset() {
 	bf.memory.Reset()
 }
 
-//PrintDebug dumps the contents of the tape to stdout.
+//PrintDebug dumps the contents of the memory tape to stdout.
 func (bf *BFInterpreter) PrintDebug() {
 	bf.memory.PrintDebug()
 }
 
-//cleanSource removes characters from a source string that are not Brainfuck
-//instructions.
+//cleanSource removes characters from a Brainfuck source that serve no purpose,
+//such as comments and newlines.
 func cleanSource(source string) string {
-	re := regexp.MustCompile(`[^+-<>.,\[\]]`)
+	re := regexp.MustCompile(`[^+-<>.,\[\]]`) //Remove non +=<>[],.
 	return re.ReplaceAllString(source, "")
 }
 
-//tokenize returns a list of tokens through run-length encoding a source string.
+//tokenize returns a list of tokens through run-length encoding a source
+//string. Only +-<> instructions get properly RLE'd since the other operations
+//provide little benefit.
 func tokenize(source string) []token {
 	tokens := make([]token, 0)
 	count := uint(1)
+
+	//Loop through source.
 	for i := range source[:len(source)-1] {
 		if source[i] == source[i+1] &&
 			strings.ContainsRune("+-<>", rune(source[i])) {
@@ -137,7 +142,8 @@ func tokenize(source string) []token {
 			count = 1
 		}
 	}
-	tokens = append(tokens, token{source[len(source)-1], count})
+
+	tokens = append(tokens, token{source[len(source)-1], count}) //Final instruction
 	return tokens
 }
 
@@ -146,6 +152,7 @@ func getLoops(tokens []token) (map[int]int, error) {
 	loops := make(map[int]int)
 	lStack := stack.New()
 
+	//Loop through source.
 	for ptr, tok := range tokens {
 		switch tok.op {
 		case '[':
@@ -155,11 +162,14 @@ func getLoops(tokens []token) (map[int]int, error) {
 				return nil, fmt.Errorf(
 					"pos %v op ]: close loop without matching open", ptr)
 			}
+
+			//Add loops to map.
 			loops[ptr] = lStack.Pop().(int)
 			loops[loops[ptr]] = ptr
 		}
 	}
 
+	//The stack should be empty at this point.
 	if lStack.Len() > 0 {
 		return nil, fmt.Errorf(
 			"pos %v op [: open loop without matching close", lStack.Pop())

@@ -1,7 +1,7 @@
 /*
 Package main provides a main method for using the interpreter.
 
-Copyright (c) 2022 4ffy
+Copyright (c) 2022 Cameron Norton
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,6 +34,7 @@ import (
 	"os"
 )
 
+//hasInput determines whether a Brainfuck source has any , instructions.
 func hasInput(source string) bool {
 	for _, v := range source {
 		if v == ',' {
@@ -44,16 +45,19 @@ func hasInput(source string) bool {
 }
 
 func main() {
+	//Parse options.
 	file := flag.String("i", "", "input source file")
 	width := flag.Uint("b", 8, "size of cells in bits")
 	flag.Parse()
 
+	//Read source.
 	data, err := ioutil.ReadFile(*file)
 	if err != nil {
 		log.Fatalf("could not read file %v: %v", file, err)
 	}
 	source := string(data)
 
+	//Read input, if necessary.
 	input := ""
 	if hasInput(source) {
 		in := bufio.NewReader(os.Stdin)
@@ -64,6 +68,7 @@ func main() {
 		input = input[:len(input)-1]
 	}
 
+	//Execute Brainfuck.
 	bf := interpreter.New(*width)
 	err = bf.Execute(source, input)
 	if err != nil {
